@@ -84,8 +84,8 @@ for (const p of pages) {
 }
 
 // ── SAVINGS ───────────────────────────────────────────────────────
-const daysElapsed    = Math.floor((todayMidnight - SAVINGS_START) / 86400000) + 1;
-const weeksElapsed   = Math.ceil(daysElapsed / 7);
+const rawDaysElapsed = Math.floor((todayMidnight - SAVINGS_START) / 86400000);
+const daysElapsed    = rawDaysElapsed >= 0 ? rawDaysElapsed + 1 : 0;
 const totalBudgeted  = daysElapsed * DAILY_LIMIT;
 const totalSaved     = Math.max(0, totalBudgeted - spentSinceStart);
 const savingsPct     = SAVINGS_GOAL > 0 ? Math.min(totalSaved / SAVINGS_GOAL * 100, 100).toFixed(1) : null;
@@ -115,7 +115,9 @@ const projMonth    = avgDaily * daysInMonth;
 
 // ── RENDER HELPERS ────────────────────────────────────────────────
 const fmt  = n  => CURRENCY + Math.abs(n).toLocaleString("en-PH", {minimumFractionDigits:2});
-const fmts = n  => (n < 0 ? "-" : "") + fmt(n);
+function esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
 function card(bg, border, labelColor, label, value, sub = "") {
   return `<div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:16px">
@@ -126,6 +128,22 @@ function card(bg, border, labelColor, label, value, sub = "") {
 }
 
 function bar(value, limit, label) {
+  if (limit <= 0) {
+    const f = n => CURRENCY + Math.abs(n).toLocaleString("en-PH", {minimumFractionDigits:2});
+    return `
+<div style="margin-bottom:20px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+    <span style="font-weight:600;font-size:0.95em">${esc(label)}</span>
+    <span style="font-size:0.82em;color:#888;font-weight:700">No limit set</span>
+  </div>
+  <div style="background:#2a2a2a;border-radius:999px;height:10px;overflow:hidden">
+    <div style="width:0%;height:100%;background:#888;border-radius:999px"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:0.76em;margin-top:4px;opacity:0.6">
+    <span>${f(value)} spent</span><span>No limit</span>
+  </div>
+</div>`;
+  }
   const pct   = Math.min(Math.max(value / limit * 100, 0), 100).toFixed(1);
   const over  = value > limit;
   const color = over ? "#ef4444" : pct > 75 ? "#f59e0b" : "#22c55e";
@@ -135,7 +153,7 @@ function bar(value, limit, label) {
   return `
 <div style="margin-bottom:20px">
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-    <span style="font-weight:600;font-size:0.95em">${label}</span>
+    <span style="font-weight:600;font-size:0.95em">${esc(label)}</span>
     <span style="font-size:0.82em;color:${color};font-weight:700">${sign}${f(remain)}</span>
   </div>
   <div style="background:#2a2a2a;border-radius:999px;height:10px;overflow:hidden">
@@ -168,7 +186,7 @@ const catRows = Object.entries(categoryMap)
     const pct = allTotal > 0 ? (amt/allTotal*100).toFixed(1) : 0;
     const barW = pct;
     return `<tr>
-      <td style="padding:6px 10px 6px 0;white-space:nowrap">${cat}</td>
+      <td style="padding:6px 10px 6px 0;white-space:nowrap">${esc(cat)}</td>
       <td style="padding:6px 0;min-width:120px">
         <div style="background:#222;border-radius:4px;height:6px;overflow:hidden">
           <div style="width:${barW}%;height:100%;background:#7c3aed;border-radius:4px"></div>
@@ -185,7 +203,7 @@ const payRows = Object.entries(paymentMap)
   .map(([method, amt]) => {
     const pct = allTotal > 0 ? (amt/allTotal*100).toFixed(1) : 0;
     return `<tr>
-      <td style="padding:5px 10px 5px 0">${method}</td>
+      <td style="padding:5px 10px 5px 0">${esc(method)}</td>
       <td style="padding:5px 0;text-align:right;font-weight:600">${fmt(amt)}</td>
       <td style="padding:5px 0 5px 8px;color:#888;font-size:0.82em">${pct}%</td>
     </tr>`;
@@ -296,10 +314,10 @@ dv.el("div", `
     <h3 style="margin:0 0 12px;font-size:0.82em;text-transform:uppercase;letter-spacing:.12em;opacity:.5">⚡ Highlights</h3>
     <div style="font-size:0.84em;line-height:2.2;opacity:.85">
       <div>🔥 Biggest single: <strong>${fmt(maxSingleExpense)}</strong></div>
-      <div style="opacity:.6;font-size:0.88em;margin-top:-6px;margin-bottom:4px;padding-left:1.2em">${maxSingleLabel}</div>
-      <div>📂 Top category: <strong>${topCategory ? topCategory[0] : "—"}</strong></div>
-      <div>💳 Top payment: <strong>${topPayment ? topPayment[0] : "—"}</strong></div>
-      <div>📅 Busiest day: <strong>${busiestDay ? busiestDay[0] : "—"}</strong></div>
+      <div style="opacity:.6;font-size:0.88em;margin-top:-6px;margin-bottom:4px;padding-left:1.2em">${esc(maxSingleLabel)}</div>
+      <div>📂 Top category: <strong>${topCategory ? esc(topCategory[0]) : "—"}</strong></div>
+      <div>💳 Top payment: <strong>${topPayment ? esc(topPayment[0]) : "—"}</strong></div>
+      <div>📅 Busiest day: <strong>${busiestDay ? esc(busiestDay[0]) : "—"}</strong></div>
       <div style="opacity:.6;font-size:0.88em;margin-top:-4px;padding-left:1.2em">${busiestDay ? fmt(busiestDay[1]) + " spent" : ""}</div>
     </div>
   </div>
