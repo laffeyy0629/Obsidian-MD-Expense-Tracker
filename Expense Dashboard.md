@@ -78,8 +78,10 @@ for (const p of pages) {
   if (dStr === todayStr)        dailyTotal      += amt;
   if (d >= SAVINGS_START)       spentSinceStart += amt;
 
-  categoryMap[p.category ?? "Uncategorized"] = (categoryMap[p.category ?? "Uncategorized"] ?? 0) + amt;
-  paymentMap[p.payment_method ?? "Unknown"]  = (paymentMap[p.payment_method ?? "Unknown"]  ?? 0) + amt;
+  const categoryKey = p.category ?? "Uncategorized";
+  const paymentKey  = p.payment_method ?? "Unknown";
+  categoryMap[categoryKey] = (categoryMap[categoryKey] ?? 0) + amt;
+  paymentMap[paymentKey]   = (paymentMap[paymentKey]   ?? 0) + amt;
   dailyMap[dStr] = (dailyMap[dStr] ?? 0) + amt;
 }
 
@@ -338,7 +340,7 @@ TABLE
   payment_method AS "Method"
 FROM "Expenses"
 WHERE date = date(today)
-SORT file.ctime ASC
+SORT date DESC, file.ctime DESC
 ```
 
 ---
